@@ -156,8 +156,8 @@ def upload_store(repo, oid):
     return "", 200
 
 
-@app.route("/nginx_auth_request")
-def nginx_auth_request():
+@app.route("/auth_request")
+def auth_request():
     now = time.time()
     key = request.headers.get("Authorization", None)
     if key is None or not key.startswith("Key "):
