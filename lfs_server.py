@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import abort, Flask, jsonify, request
 from pathlib import Path
 import secrets
+import shutil
 import threading
 import time
 
@@ -44,8 +45,7 @@ def oid_path(repo, oid, relative=False):
 
 
 def oid_url(repo, oid):
-    # path = oid_path(repo, oid, relative=True)
-    return request.url_root.rstrip("/") + "/upload_store/" + repo + "/" + oid
+    return app.config["ROOT_URL"] + "/upload_store/" + repo + "/" + oid
 
 
 def access_key(repo, req, expires_in=60 * 60):
@@ -142,13 +142,18 @@ def batch(repo):
 
 @app.route("/upload_store/<repo>/<oid>", methods=["PUT"])
 def upload_store(repo, oid):
-    print(request.headers)
-    print(repo, oid)
-    if "X-FILE" in request.headers:
-        pass
-    else:
-        print(request.get_data())
-    abort(400)
+    body_filename = request.headers.get("X-File-Name", None)
+    if not body_filename:
+        abort(400)
+
+    path = oid_path(repo, oid)
+    if path.exists():
+        return "", 200
+
+    if not path.parent.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(body_filename, path)
+    return "", 200
 
 
 @app.route("/nginx_auth_request")
