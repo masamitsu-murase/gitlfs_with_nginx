@@ -1,7 +1,9 @@
 from datetime import datetime
 from flask import abort, Flask, jsonify, request
+import hashlib
+import json
+import os
 from pathlib import Path
-import secrets
 import shutil
 import threading
 import time
@@ -9,26 +11,7 @@ import time
 app = Flask(__name__)
 app.config["LFS_ROOT"] = str(Path(__file__).absolute().parent / "repos")
 app.config["ROOT_URL"] = "http://localhost:3000"
-
-
-class KeyManager(object):
-    def __init__(self):
-        self._expires_at = {}
-        self._lock = threading.Lock()
-
-    def register_access_key(self, key, expires_at):
-        with self._lock:
-            self._expires_at[key] = expires_at
-            print(self._expires_at)
-
-    def is_valid_key(self, key, now):
-        with self._lock:
-            if key not in self._expires_at:
-                return False
-            return now < self._expires_at[key]
-
-
-key_manager = KeyManager()
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
 
 
 def base_dir(repo, relative=False):
@@ -44,15 +27,36 @@ def oid_path(repo, oid, relative=False):
     return path
 
 
-def oid_url(repo, oid):
-    return app.config["ROOT_URL"] + "/upload_store/" + repo + "/" + oid
+def oid_upload_url(repo, oid):
+    return app.config["ROOT_URL"] + "/upload/" + repo + "/" + oid
+
+
+def oid_download_url(repo, oid):
+    return app.config["ROOT_URL"] + "/download/" + repo + "/" + oid
+
+
+def hash_value(data):
+    h = hashlib.blake2b(digest_size=64, key=app.config["SECRET_KEY"])
+    h.update(data)
+    return h.hexdigest()
 
 
 def access_key(repo, req, expires_in=60 * 60):
     expires_at = int(time.time()) + expires_in
-    key = f"{secrets.token_hex()}"
-    key_manager.register_access_key(key, expires_at)
-    return key, expires_at
+    obj = {"expires_at": expires_at}
+    obj_str = json.dumps(obj)
+    sig = hash_value(obj_str.encode("utf-8"))
+    return sig, obj_str, expires_at
+
+
+def verify_access_key(key, info_str, now):
+    expected_key = hash_value(info_str.encode("utf-8"))
+    if key != expected_key:
+        return False
+    info = json.loads(info_str)
+    if info["expires_at"] < now:
+        return False
+    return True
 
 
 def lfs_response(obj):
@@ -63,15 +67,16 @@ def download(repo, req):
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
 
-    key, expires_at = access_key(repo, req)
-    header = {"Authorization": f"Key {key}"}
+    key, info, expires_at = access_key(repo, req)
+    header = {"X-Access-Key": key, "X-Access-Info": info}
+    expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
 
     objects = []
     for obj in req["objects"]:
         oid = obj["oid"]
         path = oid_path(repo, oid)
         if path.is_file():
-            url = oid_url(repo, oid)
+            url = oid_download_url(repo, oid)
             size = path.stat().st_size
             objects.append({
                 "oid": oid,
@@ -81,7 +86,7 @@ def download(repo, req):
                     "download": {
                         "href": url,
                         "header": header,
-                        "expires_at": expires_at
+                        "expires_at": expires_at_str
                     }
                 }
             })
@@ -101,14 +106,14 @@ def upload(repo, req):
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
 
-    key, expires_at = access_key(repo, req)
-    header = {"Authorization": f"Key {key}"}
+    key, info, expires_at = access_key(repo, req)
+    header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
 
     objects = []
     for obj in req["objects"]:
         oid = obj["oid"]
-        url = oid_url(repo, oid)
+        url = oid_upload_url(repo, oid)
         size = obj["size"]
         objects.append({
             "oid": oid,
@@ -130,7 +135,6 @@ def upload(repo, req):
 def batch(repo):
     req = request.json
     operation = req["operation"]
-    print(req)
 
     if operation == "download":
         return download(repo, req)
@@ -140,8 +144,8 @@ def batch(repo):
         abort(400)
 
 
-@app.route("/upload_store/<repo>/<oid>", methods=["PUT"])
-def upload_store(repo, oid):
+@app.route("/upload/<repo>/<oid>", methods=["PUT"])
+def upload_file(repo, oid):
     body_filename = request.headers.get("X-File-Name", None)
     if not body_filename:
         abort(400)
@@ -156,14 +160,30 @@ def upload_store(repo, oid):
     return "", 200
 
 
+@app.route("/download/<repo>/<oid>", methods=["GET"])
+def download_file(repo, oid):
+    path = oid_path(repo, oid)
+    if not path.exists():
+        abort(404)
+
+    rel_path = oid_path(repo, oid, relative=True)
+    url = "/repos/" + rel_path.as_posix()
+    headers = {
+        "X-Accel-Redirect": url,
+        "Content-Type": "application/octet-stream"
+    }
+
+    return "", 200, headers
+
+
 @app.route("/auth_request")
 def auth_request():
     now = time.time()
-    key = request.headers.get("Authorization", None)
-    if key is None or not key.startswith("Key "):
+    key = request.headers.get("X-Access-Key", None)
+    info = request.headers.get("X-Access-Info", None)
+    if key is None or info is None:
         abort(401)
-    key_value = key[4:]
-    if not key_manager.is_valid_key(key_value, now):
+    if not verify_access_key(key, info, now):
         abort(401)
 
     return "", 200
