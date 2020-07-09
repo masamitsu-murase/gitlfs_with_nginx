@@ -5,12 +5,10 @@ import json
 import os
 from pathlib import Path
 import shutil
-import threading
 import time
 
 app = Flask(__name__)
 app.config["LFS_ROOT"] = str(Path(__file__).absolute().parent / "repos")
-app.config["ROOT_URL"] = "http://localhost:3000"
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
 
 
@@ -27,12 +25,12 @@ def oid_path(repo, oid, relative=False):
     return path
 
 
-def oid_upload_url(repo, oid):
-    return app.config["ROOT_URL"] + "/upload/" + repo + "/" + oid
+def oid_upload_url(base_url, repo, oid):
+    return base_url + "upload/" + repo + "/" + oid
 
 
-def oid_download_url(repo, oid):
-    return app.config["ROOT_URL"] + "/download/" + repo + "/" + oid
+def oid_download_url(base_url, repo, oid):
+    return base_url + "download/" + repo + "/" + oid
 
 
 def hash_value(data):
@@ -70,13 +68,14 @@ def download(repo, req):
     key, info, expires_at = access_key(repo, req)
     header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
+    base_url = request.url_root
 
     objects = []
     for obj in req["objects"]:
         oid = obj["oid"]
         path = oid_path(repo, oid)
         if path.is_file():
-            url = oid_download_url(repo, oid)
+            url = oid_download_url(base_url, repo, oid)
             size = path.stat().st_size
             objects.append({
                 "oid": oid,
@@ -109,11 +108,12 @@ def upload(repo, req):
     key, info, expires_at = access_key(repo, req)
     header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
+    base_url = request.url_root
 
     objects = []
     for obj in req["objects"]:
         oid = obj["oid"]
-        url = oid_upload_url(repo, oid)
+        url = oid_upload_url(base_url, repo, oid)
         size = obj["size"]
         objects.append({
             "oid": oid,
