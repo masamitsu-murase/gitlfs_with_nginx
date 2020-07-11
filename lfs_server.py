@@ -8,7 +8,7 @@ import shutil
 import time
 
 app = Flask(__name__)
-app.config["LFS_ROOT"] = str(Path(__file__).absolute().parent / "repos")
+app.config["LFS_ROOT"] = "/opt/home/data" + "/repos"
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
 
 
