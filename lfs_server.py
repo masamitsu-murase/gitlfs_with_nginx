@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import time
 
@@ -39,20 +40,25 @@ def hash_value(data):
     return h.hexdigest()
 
 
-def access_key(repo, req, expires_in=60 * 60):
+def create_access_key(repo, req, expires_in=60 * 60):
     expires_at = int(time.time()) + expires_in
-    obj = {"expires_at": expires_at}
+    obj = {"expires_at": expires_at, "repo": repo}
     obj_str = json.dumps(obj)
     sig = hash_value(obj_str.encode("utf-8"))
     return sig, obj_str, expires_at
 
 
-def verify_access_key(key, info_str, now):
+def verify_access_key(key, info_str, now, repo):
     expected_key = hash_value(info_str.encode("utf-8"))
     if key != expected_key:
         return False
-    info = json.loads(info_str)
+    try:
+        info = json.loads(info_str)
+    except json.JSONDecodeError:
+        return False
     if info["expires_at"] < now:
+        return False
+    if info["repo"] != repo:
         return False
     return True
 
@@ -65,7 +71,7 @@ def download(repo, req):
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
 
-    key, info, expires_at = access_key(repo, req)
+    key, info, expires_at = create_access_key(repo, req)
     header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
     base_url = request.url_root
@@ -105,7 +111,7 @@ def upload(repo, req):
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
 
-    key, info, expires_at = access_key(repo, req)
+    key, info, expires_at = create_access_key(repo, req)
     header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
     base_url = request.url_root
@@ -176,15 +182,25 @@ def download_file(repo, oid):
     return "", 200, headers
 
 
+file_access_url_pattern = re.compile(r"/(upload|download)/([^/]+)/([^/]+)$")
+
+
 @app.route("/auth_request")
 def auth_request():
     now = time.time()
     key = request.headers.get("X-Access-Key", None)
     info = request.headers.get("X-Access-Info", None)
-    if key is None or info is None:
-        abort(401)
-    if not verify_access_key(key, info, now):
-        abort(401)
+    original_uri = request.headers.get("X-Original-Uri", None)
+    if key is None or info is None or original_uri is None:
+        abort(403)
+
+    match_data = file_access_url_pattern.match(original_uri)
+    if not match_data:
+        abort(403)
+
+    repo = match_data.group(2)
+    if not verify_access_key(key, info, now, repo):
+        abort(403)
 
     return "", 200
 
