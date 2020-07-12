@@ -3,6 +3,8 @@ FROM nginx:1.19
 
 WORKDIR /home/developer
 
+EXPOSE 3000
+
 COPY nginx.conf.template .
 COPY requirements.txt .
 COPY lfs_server.py .
