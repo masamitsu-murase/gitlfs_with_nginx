@@ -112,7 +112,7 @@ def upload(repo, req):
         abort(501)
 
     key, info, expires_at = create_access_key(repo, req)
-    header = {"X-Access-Key": key, "X-Access-Info": info}
+    common_header = {"X-Access-Key": key, "X-Access-Info": info}
     expires_at_str = datetime.utcfromtimestamp(expires_at).isoformat() + "Z"
     base_url = request.url_root
 
@@ -121,6 +121,8 @@ def upload(repo, req):
         oid = obj["oid"]
         url = oid_upload_url(base_url, repo, oid)
         size = obj["size"]
+        header = {"X-File-Size": str(size)}
+        header.update(common_header)
         objects.append({
             "oid": oid,
             "size": size,
@@ -153,7 +155,11 @@ def batch(repo):
 @app.route("/upload/<repo>/<oid>", methods=["PUT"])
 def upload_file(repo, oid):
     body_filename = request.headers.get("X-File-Name", None)
-    if not body_filename:
+    body_filesize = request.headers.get("X-File-Size", None)
+    if not body_filename or not body_filesize:
+        abort(400)
+
+    if os.stat(body_filename).st_size != int(body_filesize):
         abort(400)
 
     path = oid_path(repo, oid)
