@@ -8,7 +8,7 @@ import shutil
 import time
 
 app = Flask(__name__)
-app.config["LFS_ROOT"] = "/opt/home/data" + "/repos"
+app.config["LFS_ROOT_REPOS"] = os.environ["LFS_ROOT"] + "/repos"
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
 
 
@@ -16,7 +16,7 @@ def base_dir(repo, relative=False):
     if relative:
         return Path(repo)
     else:
-        return Path(app.config["LFS_ROOT"]) / repo
+        return Path(app.config["LFS_ROOT_REPOS"]) / repo
 
 
 def oid_path(repo, oid, relative=False):
