@@ -1,6 +1,9 @@
 
 FROM nginx:1.19
 
+LABEL maintainer="masamitsu.murase@gmail.com" \
+      version="1.0"
+
 WORKDIR /home/developer
 
 EXPOSE 3000
@@ -12,7 +15,9 @@ COPY prepare.sh .
 
 RUN apt-get update && apt-get install -y \
         python3.7 \
-        python3-venv
+        python3-venv \
+    && apt-get clean \
+    && rm -f -r /var/lib/apt/lists/*
 RUN /bin/bash prepare.sh
 
 COPY nginx.conf.template .
