@@ -212,6 +212,6 @@ def auth_request():
 
 
 if __name__ == '__main__':
-    port = 5000
+    port = int(os.environ["FLASK_PORT"])
     host = "localhost"
     app.run(host=host, port=port)
