@@ -11,6 +11,8 @@ import time
 app = Flask(__name__)
 app.config["LFS_ROOT_REPOS"] = os.environ["LFS_ROOT"] + "/repos"
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
+if len(app.config["SECRET_KEY"]) > 64:
+    raise RuntimeError("SECRET_KEY must be less than or equal to 64 bytes.")
 
 
 def base_dir(repo, relative=False):
