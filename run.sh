@@ -1,9 +1,9 @@
 
 set -e
 
-envsubst '$LFS_ROOT $EXTERNAL_PORT' < nginx.conf.template > /etc/nginx/nginx.conf
+envsubst '$LFS_ROOT $EXTERNAL_PORT $FLASK_PORT' < nginx.conf.template > /etc/nginx/nginx.conf
 nginx -t
 nginx
 
 . venv/bin/activate
-python lfs_server.py
+gunicorn -c gunicorn.conf.py lfs_server:app
