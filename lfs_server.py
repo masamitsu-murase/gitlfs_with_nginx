@@ -141,21 +141,21 @@ def upload(repo, req):
     return lfs_response(response)
 
 
-@app.route("/lfs/<repo>/info/lfs/objects/batch", methods=["POST"])
-def batch(repo):
+@app.route("/lfs/<repo_group>/<repo>/info/lfs/objects/batch", methods=["POST"])
+def batch(repo_group, repo):
     req = request.json
     operation = req["operation"]
 
     if operation == "download":
-        return download(repo, req)
+        return download(f"{repo_group}/{repo}", req)
     elif operation == "upload":
-        return upload(repo, req)
+        return upload(f"{repo_group}/{repo}", req)
     else:
         abort(400)
 
 
-@app.route("/upload/<repo>/<oid>", methods=["PUT"])
-def upload_file(repo, oid):
+@app.route("/upload/<repo_group>/<repo>/<oid>", methods=["PUT"])
+def upload_file(repo_group, repo, oid):
     body_filename = request.headers.get("X-File-Name", None)
     body_filesize = request.headers.get("X-File-Size", None)
     if not body_filename or not body_filesize:
@@ -164,7 +164,7 @@ def upload_file(repo, oid):
     if os.stat(body_filename).st_size != int(body_filesize):
         abort(400)
 
-    path = oid_path(repo, oid)
+    path = oid_path(f"{repo_group}/{repo}", oid)
     if path.exists():
         return "", 200
 
@@ -174,13 +174,13 @@ def upload_file(repo, oid):
     return "", 200
 
 
-@app.route("/download/<repo>/<oid>", methods=["GET"])
-def download_file(repo, oid):
-    path = oid_path(repo, oid)
+@app.route("/download/<repo_group>/<repo>/<oid>", methods=["GET"])
+def download_file(repo_group, repo, oid):
+    path = oid_path(f"{repo_group}/{repo}", oid)
     if not path.exists():
         abort(404)
 
-    rel_path = oid_path(repo, oid, relative=True)
+    rel_path = oid_path(f"{repo_group}/{repo}", oid, relative=True)
     url = "/repos/" + rel_path.as_posix()
     headers = {
         "X-Accel-Redirect": url,
@@ -190,7 +190,8 @@ def download_file(repo, oid):
     return "", 200, headers
 
 
-file_access_url_pattern = re.compile(r"/(upload|download)/([^/]+)/([^/]+)$")
+file_access_url_pattern = re.compile(
+    r"^/(upload|download)/([^/]+)/([^/]+)/([^/]+)$")
 
 
 @app.route("/auth_request")
@@ -206,8 +207,9 @@ def auth_request():
     if not match_data:
         abort(403)
 
-    repo = match_data.group(2)
-    if not verify_access_key(key, info, now, repo):
+    repo_group = match_data.group(2)
+    repo = match_data.group(3)
+    if not verify_access_key(key, info, now, f"{repo_group}/{repo}"):
         abort(403)
 
     return "", 200

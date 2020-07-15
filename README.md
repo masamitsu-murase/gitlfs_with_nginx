@@ -20,6 +20,7 @@ On your server:
    # Specify a port of this LFS server.
    EXTERNAL_PORT=2000
    # Specify a secret key used by the LFS server.
+   #  Note that the key must be less than or equal to 64 bytes.
    SECRET_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
    ```
 3. Run Docker.  
@@ -32,7 +33,7 @@ On your client:
 
 1. Configure your git repository.  
    ```bash
-   git config -f .lfsconfig lfs.url http://SERVER:2000/lfs/REPOSITORY_NAME/info/lfs
+   git config -f .lfsconfig lfs.url http://SERVER:2000/lfs/REPOSITORY_GROUP/REPOSITORY_NAME/info/lfs
    ```
 
 ## License
