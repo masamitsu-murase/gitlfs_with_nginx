@@ -70,7 +70,7 @@ def lfs_response(obj):
 
 
 REPO_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
-INVALID_REPO_NAMES = [".objects"]
+INVALID_REPO_NAMES = [".objects", ".", ".."]
 
 
 def check_repo(repo):
