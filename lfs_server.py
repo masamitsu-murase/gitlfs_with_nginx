@@ -69,21 +69,18 @@ def lfs_response(obj):
     return jsonify(obj), 200, {'Content-Type': 'application/vnd.git-lfs+json'}
 
 
-repo_pattern = re.compile(r"^[a-zA-Z0-9_.-]+$")
-invalid_repo_names = [".objects"]
+REPO_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+$")
+INVALID_REPO_NAMES = [".objects"]
 
 
-def check_repo(repo_group, repo_name):
-    if not all((repo_pattern.match(x) and x not in invalid_repo_names)
-               for x in repo_group.split("/")):
-        abort(400)
-    if not repo_pattern.match(repo_name) or repo_name in invalid_repo_names:
+def check_repo(repo):
+    if not all((REPO_PATTERN.match(x) and x not in INVALID_REPO_NAMES)
+               for x in repo.split("/")):
         abort(400)
 
 
-def download(repo_group, repo_name, req):
-    check_repo(repo_group, repo_name)
-    repo = f"{repo_group}/{repo_name}"
+def download(repo, req):
+    check_repo(repo)
 
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
@@ -124,9 +121,8 @@ def download(repo_group, repo_name, req):
     return lfs_response(response)
 
 
-def upload(repo_group, repo_name, req):
-    check_repo(repo_group, repo_name)
-    repo = f"{repo_group}/{repo_name}"
+def upload(repo, req):
+    check_repo(repo)
 
     if "basic" not in req.get("transfers", ["basic"]):
         abort(501)
@@ -159,22 +155,21 @@ def upload(repo_group, repo_name, req):
     return lfs_response(response)
 
 
-@app.route("/lfs/<path:repo_group>/<repo_name>/info/lfs/objects/batch",
-           methods=["POST"])
-def batch(repo_group, repo_name):
+@app.route("/lfs/<path:repo>/info/lfs/objects/batch", methods=["POST"])
+def batch(repo):
     req = request.json
     operation = req["operation"]
 
     if operation == "download":
-        return download(repo_group, repo_name, req)
+        return download(repo, req)
     elif operation == "upload":
-        return upload(repo_group, repo_name, req)
+        return upload(repo, req)
     else:
         abort(400)
 
 
-@app.route("/upload/<path:repo_group>/<repo_name>/<oid>", methods=["PUT"])
-def upload_file(repo_group, repo_name, oid):
+@app.route("/upload/<path:repo>/<oid>", methods=["PUT"])
+def upload_file(repo, oid):
     body_filename = request.headers.get("X-File-Name", None)
     body_filesize = request.headers.get("X-File-Size", None)
     if not body_filename or not body_filesize:
@@ -183,9 +178,8 @@ def upload_file(repo_group, repo_name, oid):
     if os.stat(body_filename).st_size != int(body_filesize):
         abort(400)
 
-    check_repo(repo_group, repo_name)
+    check_repo(repo)
 
-    repo = f"{repo_group}/{repo_name}"
     path = oid_path(repo, oid)
     if path.exists():
         return "", 200
@@ -196,11 +190,10 @@ def upload_file(repo_group, repo_name, oid):
     return "", 200
 
 
-@app.route("/download/<path:repo_group>/<repo_name>/<oid>", methods=["GET"])
-def download_file(repo_group, repo_name, oid):
-    check_repo(repo_group, repo_name)
+@app.route("/download/<path:repo>/<oid>", methods=["GET"])
+def download_file(repo, oid):
+    check_repo(repo)
 
-    repo = f"{repo_group}/{repo_name}"
     path = oid_path(repo, oid)
     if not path.exists():
         abort(404)
@@ -215,7 +208,7 @@ def download_file(repo_group, repo_name, oid):
     return "", 200, headers
 
 
-file_access_url_pattern = re.compile(r"^/(upload|download)((?:/[^/]+){3,})$")
+FILE_ACCESS_URL_PATTERN = re.compile(r"^/(upload|download)((?:/[^/]+){3,})$")
 
 
 @app.route("/auth_request")
@@ -227,13 +220,12 @@ def auth_request():
     if key is None or info is None or original_uri is None:
         abort(403)
 
-    match_data = file_access_url_pattern.match(original_uri)
+    match_data = FILE_ACCESS_URL_PATTERN.match(original_uri)
     if not match_data:
         abort(403)
 
     # Drop 1st "/", then split.
-    repo_group, repo_name, _ = match_data.group(2)[1:].rsplit("/", 2)
-    repo = f"{repo_group}/{repo_name}"
+    repo, _ = match_data.group(2)[1:].rsplit("/", 1)
     if not verify_access_key(key, info, now, repo):
         abort(403)
 
