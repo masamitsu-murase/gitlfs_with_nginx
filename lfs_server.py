@@ -1,5 +1,6 @@
+import base64
 from datetime import datetime
-from flask import abort, Flask, jsonify, request
+from flask import abort, Flask, jsonify, make_response, request
 import hashlib
 import json
 import os
@@ -9,6 +10,8 @@ import shutil
 import time
 
 app = Flask(__name__)
+
+AUTHENTICATOR = None
 LFS_ROOT_REPOS = Path(os.environ["LFS_ROOT"]) / "repos"
 SECRET_KEY = os.environ["SECRET_KEY"].encode("utf-8")
 if len(SECRET_KEY) > 64:
@@ -77,6 +80,30 @@ def check_repo(repo):
     if not all((REPO_PATTERN.match(x) and x not in INVALID_REPO_NAMES)
                for x in repo.split("/")):
         abort(400)
+
+
+def abort_basic_authentication():
+    response = make_response("", 401)
+    response.headers["LFS-Authenticate"] = 'Basic realm="Git LFS"'
+    abort(response)
+
+
+def authenticate(repo):
+    if not AUTHENTICATOR:
+        return True
+
+    authorization = request.headers.get("Authorization", None)
+    if authorization is None or not authorization.startswith("Basic "):
+        abort_basic_authentication()
+
+    try:
+        auth_value = base64.b64decode(authorization[6:], validate=True)
+        username, password = auth_value.decode("utf-8").split(":", 1)
+        if not AUTHENTICATOR.authenticate(username, password, repo):
+            abort_basic_authentication()
+        return username
+    except RuntimeError:
+        abort_basic_authentication()
 
 
 def download(repo, req):
@@ -157,6 +184,8 @@ def upload(repo, req):
 
 @app.route("/lfs/<path:repo>/info/lfs/objects/batch", methods=["POST"])
 def batch(repo):
+    authenticate(repo)
+
     req = request.json
     operation = req["operation"]
 
