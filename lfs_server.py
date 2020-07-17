@@ -9,9 +9,9 @@ import shutil
 import time
 
 app = Flask(__name__)
-app.config["LFS_ROOT_REPOS"] = os.environ["LFS_ROOT"] + "/repos"
-app.config["SECRET_KEY"] = os.environ["SECRET_KEY"].encode("utf-8")
-if len(app.config["SECRET_KEY"]) > 64:
+LFS_ROOT_REPOS = Path(os.environ["LFS_ROOT"]) / "repos"
+SECRET_KEY = os.environ["SECRET_KEY"].encode("utf-8")
+if len(SECRET_KEY) > 64:
     raise RuntimeError("SECRET_KEY must be less than or equal to 64 bytes.")
 
 
@@ -19,7 +19,7 @@ def base_dir(repo, relative=False):
     if relative:
         return Path(repo)
     else:
-        return Path(app.config["LFS_ROOT_REPOS"]) / repo
+        return LFS_ROOT_REPOS / repo
 
 
 def oid_path(repo, oid, relative=False):
@@ -37,7 +37,7 @@ def oid_download_url(base_url, repo, oid):
 
 
 def hash_value(data):
-    h = hashlib.blake2b(digest_size=64, key=app.config["SECRET_KEY"])
+    h = hashlib.blake2b(digest_size=64, key=SECRET_KEY)
     h.update(data)
     return h.hexdigest()
 
