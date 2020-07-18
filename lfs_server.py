@@ -211,7 +211,10 @@ def upload_file(repo, oid):
 
     path = oid_path(repo, oid)
     if path.exists():
-        return "", 200
+        if path.stat().st_size == int(body_filesize):
+            return "", 200
+        else:
+            abort(400)
 
     if not path.parent.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
