@@ -240,7 +240,7 @@ def download_file(repo, oid):
     return "", 200, headers
 
 
-FILE_ACCESS_URL_PATTERN = re.compile(r"^/(upload|download)((?:/[^/]+){3,})$")
+FILE_ACCESS_URL_PATTERN = re.compile(r"^/(upload|download)((?:/[^/]+){2,})$")
 
 
 @app.route("/auth_request")
