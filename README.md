@@ -36,7 +36,33 @@ On your client:
    git config -f .lfsconfig lfs.url http://SERVER:2000/lfs/REPOSITORY_GROUP/REPOSITORY_NAME/info/lfs
    ```
 
+## Hot to customize
+
+### Authentication
+
+Modify `AUTHENTICATOR` in `lfs_server.py` to specify an authenticator for Basic Authentication.
+
+Here is very simple example.
+
+```python
+class SimpleAuthenticator(object):
+    def authenticate(self, username, password, repo):
+        password_dict = {
+            "admin": "AdminPass",
+            "user1": "UserPass"
+        }
+        if repo.startswith("admin"):
+            if username != "admin":
+                return False
+        return password_dict.get(username, None) == password
+
+AUTHENTICATOR = SimpleAuthenticator()
+```
+
+
 ## License
+
+This software is distibuted under the MIT License.
 
 Copyright 2020 Masamitsu MURASE
 
