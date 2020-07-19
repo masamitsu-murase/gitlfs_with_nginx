@@ -39,8 +39,11 @@ class GitLfsServerTest(unittest.TestCase):
     def lfs_url(self, repo):
         return f"http://localhost:2000/lfs/{repo}/info/lfs"
 
+    def git_repo_dir(self, name):
+        return GIT_REPOS_DIR / name
+
     def create_git_repo(self, name):
-        git_dir = GIT_REPOS_DIR / name
+        git_dir = self.git_repo_dir(name)
         git_dir.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "init", ".", "--bare"],
                        check=True,
@@ -53,7 +56,7 @@ class GitLfsServerTest(unittest.TestCase):
 
     def clone_git_repo(self, name, dirname):
         working_dir = self.working_dir(dirname)
-        git_dir = GIT_REPOS_DIR / name
+        git_dir = self.git_repo_dir(name)
         working_dir.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "clone", str(git_dir), "."],
                        check=True,
@@ -66,7 +69,7 @@ class GitLfsServerTest(unittest.TestCase):
         if length % 8 != 0:
             raise RuntimeError(
                 "create_random_file can handle 8-byte aligned data only.")
-        rnd = random.Random(str(filepath))
+        rnd = random.Random(str(filepath.name))
         data = (b''.join(
             map(
                 struct.Struct("!Q").pack,
@@ -80,25 +83,42 @@ class GitLfsServerTest(unittest.TestCase):
             git_command = ["git"] + command
             subprocess.run(git_command,
                            check=True,
+                           shell=True,
                            cwd=cwd,
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
 
-    def exec_lfs_push(self, repo_name, lfs_repo_name):
-        self.create_git_repo(repo_name)
-        repo = self.clone_git_repo(repo_name, repo_name)
+    def init_lfs_and_push(self, repo_name, lfs_repo_name, dirname):
+        repo = self.clone_git_repo(repo_name, dirname)
         commands = [
             ["lfs", "track", "\"*.txt\""],
             [
                 "config", "-f", ".lfsconfig", "lfs.url",
                 self.lfs_url(lfs_repo_name)
             ],
-            ["add", "file1.txt", ".gitattributes", ".lfsconfig"],
-            ["commit", "-m", "commit"],
+            ["add", ".gitattributes", ".lfsconfig"],
+            ["commit", "-m", "init_lfs"],
             ["push", "origin", "master"],
         ]
-        self.create_random_file(repo / "file1.txt")
         self.run_git_commands(commands, repo)
+
+    def prepare_lfs_files(self, dirname, file_count):
+        working_dir = self.working_dir(dirname)
+        for i in range(file_count):
+            self.create_random_file(working_dir / f"file_{i}.txt")
+
+        file_names = [f"file_{i}.txt" for i in range(file_count)]
+        unit_size = 10
+        add_commands = (["add", *file_names[beg:beg + unit_size]]
+                        for beg in range(0, file_count, unit_size))
+
+        commands = [*add_commands, ["commit", "-m", "commit"]]
+        self.run_git_commands(commands, working_dir)
+
+    def push_changes(self, dirname):
+        working_dir = self.working_dir(dirname)
+        commands = [["push", "origin", "master"]]
+        self.run_git_commands(commands, working_dir)
 
     def compare_dirs(self, dir1, dir2):
         dircmp = filecmp.dircmp(self.working_dir(dir1), self.working_dir(dir2))
@@ -107,11 +127,59 @@ class GitLfsServerTest(unittest.TestCase):
         self.assertEqual(len(dircmp.diff_files), 0)
         self.assertEqual(len(dircmp.funny_files), 0)
 
-    def test_lfs(self):
-        self.exec_lfs_push("repo1", "repo1-._Name")
+    def run_lfs_simple_test(self, lfs_repo_name):
+        self.create_git_repo("repo1")
+        self.init_lfs_and_push("repo1", lfs_repo_name, "repo1_org")
+        self.prepare_lfs_files("repo1_org", 5)
+        self.push_changes("repo1_org")
         self.clone_git_repo("repo1", "repo1_clone")
-        self.compare_dirs("repo1", "repo1_clone")
+        self.compare_dirs("repo1_org", "repo1_clone")
 
-        self.exec_lfs_push("repo2", "group.git/-subgroup/repo1-._Name")
-        self.clone_git_repo("repo2", "repo2_clone")
-        self.compare_dirs("repo2", "repo2_clone")
+    def test_lfs_simple_test(self):
+        self.run_lfs_simple_test("repo1-._Name")
+
+    def test_lfs_simple_test_with_namespace_repo(self):
+        self.run_lfs_simple_test("-/sample/.git/123/_sample_")
+
+    def test_simultaneous_push(self):
+        file_count = 20
+        if "GITHUB_ACTIONS" in os.environ:
+            file_count = 200
+
+        # 3 repositories share a single LFS.
+        # This is not recommended, but useful for test.
+        repo_list = ["repo1", "repo2", "repo3"]
+        for repo in repo_list:
+            self.create_git_repo(repo)
+            self.init_lfs_and_push(repo, "lfs_repo", f"{repo}_org")
+            self.prepare_lfs_files(f"{repo}_org", file_count)
+
+        process_list = []
+        for repo in repo_list:
+            command = ["git", "push", "origin", "master"]
+            working_dir = self.working_dir(f"{repo}_org")
+            proc = subprocess.Popen(command,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL,
+                                    cwd=working_dir)
+            process_list.append(proc)
+        for proc in process_list:
+            proc.wait()
+
+        process_list = []
+        for repo in repo_list:
+            git_dir = self.git_repo_dir(repo)
+            working_dir = self.working_dir(f"{repo}_clone")
+            working_dir.mkdir(parents=True, exist_ok=True)
+            command = ["git", "clone", str(git_dir), "."]
+            proc = subprocess.Popen(command,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL,
+                                    cwd=working_dir)
+            process_list.append(proc)
+        for proc in process_list:
+            proc.wait()
+
+        for repo in repo_list:
+            self.compare_dirs(self.working_dir(f"{repo}_org"),
+                              self.working_dir(f"{repo}_clone"))

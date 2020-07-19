@@ -212,6 +212,7 @@ def upload_file(repo, oid):
     path = oid_path(repo, oid)
     if path.exists():
         if path.stat().st_size == int(body_filesize):
+            os.remove(body_filename)
             return "", 200
         else:
             abort(400)
