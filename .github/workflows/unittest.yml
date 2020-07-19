@@ -23,6 +23,11 @@ jobs:
     - name: Run the Docker image
       run: docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:3000 gitlfs_with_nginx
 
+    - name: Configure git
+      run: |
+        git config --global user.email "test.runner@example.com"
+        git config --global user.name "Test Runner"
+
     - name: Run unittest
       run: python -m unittest
 
