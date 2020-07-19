@@ -140,14 +140,14 @@ class GitLfsServerTest(unittest.TestCase):
     def test_lfs_simple_test_with_namespace_repo(self):
         self.run_lfs_simple_test("-/sample/.git/123/_sample_")
 
-    def test_simultaneous_push(self):
+    def test_simultaneous_access(self):
         file_count = 20
         if "GITHUB_ACTIONS" in os.environ:
             file_count = 200
 
         # 3 repositories share a single LFS.
         # This is not recommended, but useful for test.
-        repo_list = ["repo1", "repo2", "repo3"]
+        repo_list = ["repo1", "repo2"]
         for repo in repo_list:
             self.create_git_repo(repo)
             self.init_lfs_and_push(repo, "lfs_repo", f"{repo}_org")
