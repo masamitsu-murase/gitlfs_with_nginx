@@ -16,11 +16,15 @@ jobs:
       with:
         python-version: '3.7'
         architecture: 'x64'
+
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag gitlfs_with_nginx
+
     - name: Run the Docker image
       run: docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:3000 gitlfs_with_nginx
+
     - name: Run unittest
-      run: python -m unittest tests
+      run: python -m unittest
+
     - name: Stop the Docker image
       run: docker stop gitlfs_container
