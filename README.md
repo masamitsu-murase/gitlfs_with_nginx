@@ -1,3 +1,5 @@
+![Python Unittest](https://github.com/masamitsu-murase/gitlfs_with_nginx/workflows/Python%20Unittest/badge.svg)
+
 # Git LFS server with nginx
 
 Sample implementation of Git LFS server.
