@@ -65,7 +65,7 @@ class GitLfsServerTest(unittest.TestCase):
                        stderr=subprocess.DEVNULL)
         return working_dir
 
-    def create_random_file(self, filepath, length=10 * 1024 * 1024):
+    def create_random_file(self, filepath, length=1 * 1024 * 1024):
         if length % 8 != 0:
             raise RuntimeError(
                 "create_random_file can handle 8-byte aligned data only.")
