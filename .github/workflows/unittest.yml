@@ -29,7 +29,7 @@ jobs:
         git config --global user.name "Test Runner"
 
     - name: Run unittest
-      run: python -m unittest
+      run: python -m unittest -v
 
     - name: Stop the Docker image
       run: docker stop gitlfs_container
