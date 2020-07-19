@@ -147,7 +147,7 @@ class GitLfsServerTest(unittest.TestCase):
 
         # 3 repositories share a single LFS.
         # This is not recommended, but useful for test.
-        repo_list = ["repo1", "repo2"]
+        repo_list = ["repo1", "repo2", "repo3"]
         for repo in repo_list:
             self.create_git_repo(repo)
             self.init_lfs_and_push(repo, "lfs_repo", f"{repo}_org")
