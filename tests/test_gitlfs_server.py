@@ -159,7 +159,7 @@ class GitLfsServerTest(unittest.TestCase):
     def test_simultaneous_access(self):
         file_count = 20
         if "GITHUB_ACTIONS" in os.environ:
-            file_count = 200
+            file_count = 100
 
         # 3 repositories share a single LFS.
         # This is not recommended, but useful for test.
