@@ -101,10 +101,11 @@ class GitLfsServerTest(unittest.TestCase):
         ]
         self.run_git_commands(commands, repo)
 
-    def prepare_lfs_files(self, dirname, file_count):
+    def prepare_lfs_files(self, dirname, file_count, filesize=1 * 1024 * 1024):
         working_dir = self.working_dir(dirname)
         for i in range(file_count):
-            self.create_random_file(working_dir / f"file_{i}.txt")
+            self.create_random_file(working_dir / f"file_{i}.txt",
+                                    length=filesize)
 
         file_names = [f"file_{i}.txt" for i in range(file_count)]
         unit_size = 10
@@ -139,6 +140,21 @@ class GitLfsServerTest(unittest.TestCase):
 
     def test_lfs_simple_test_with_namespace_repo(self):
         self.run_lfs_simple_test("-/sample/.git/123/_sample_")
+
+    def test_many_large_files(self):
+        file_count = 20
+        if "GITHUB_ACTIONS" in os.environ:
+            file_count = 200
+
+        repo = "repo1"
+        self.create_git_repo(repo)
+        self.init_lfs_and_push(repo, "lfs_repo", f"{repo}_org")
+        self.prepare_lfs_files(f"{repo}_org",
+                               file_count,
+                               filesize=10 * 1024 * 1024)
+        self.push_changes(f"{repo}_org")
+        self.clone_git_repo(repo, f"{repo}_clone")
+        self.compare_dirs(f"{repo}_org", f"{repo}_clone")
 
     def test_simultaneous_access(self):
         file_count = 20
