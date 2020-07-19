@@ -33,3 +33,5 @@ jobs:
 
     - name: Stop the Docker image
       run: docker stop gitlfs_container
+      if: always()
+      continue-on-error: true
