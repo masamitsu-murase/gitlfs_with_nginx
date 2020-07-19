@@ -65,7 +65,7 @@ class GitLfsServerTest(unittest.TestCase):
                        stderr=subprocess.DEVNULL)
         return working_dir
 
-    def create_random_file(self, filepath, length=10 * 1024 * 1024):
+    def create_random_file(self, filepath, length=1 * 1024 * 1024):
         if length % 8 != 0:
             raise RuntimeError(
                 "create_random_file can handle 8-byte aligned data only.")
@@ -83,7 +83,6 @@ class GitLfsServerTest(unittest.TestCase):
             git_command = ["git"] + command
             subprocess.run(git_command,
                            check=True,
-                           shell=True,
                            cwd=cwd,
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
@@ -141,7 +140,7 @@ class GitLfsServerTest(unittest.TestCase):
     def test_lfs_simple_test_with_namespace_repo(self):
         self.run_lfs_simple_test("-/sample/.git/123/_sample_")
 
-    def test_simultaneous_push(self):
+    def test_simultaneous_access(self):
         file_count = 20
         if "GITHUB_ACTIONS" in os.environ:
             file_count = 200
