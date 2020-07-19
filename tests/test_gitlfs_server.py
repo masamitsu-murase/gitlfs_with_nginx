@@ -83,7 +83,6 @@ class GitLfsServerTest(unittest.TestCase):
             git_command = ["git"] + command
             subprocess.run(git_command,
                            check=True,
-                           shell=True,
                            cwd=cwd,
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
