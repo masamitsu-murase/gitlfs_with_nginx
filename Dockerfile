@@ -9,6 +9,7 @@ WORKDIR /home/developer
 EXPOSE 3000
 
 ENV FLASK_PORT=5000
+ENV LFS_ROOT=/opt/home/data
 
 COPY requirements.txt .
 COPY prepare.sh .
