@@ -17,8 +17,6 @@ On your server:
    ```
 2. Configure `env.list`.  
    ```text
-   # Specify a directory to save LFS data.
-   LFS_ROOT=/opt/home/data
    # Specify a port of this LFS server.
    EXTERNAL_PORT=2000
    # Specify a secret key used by the LFS server.
@@ -26,7 +24,9 @@ On your server:
    SECRET_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
    ```
 3. Run Docker.  
-   In the following command, `/opt/home/data` corresponds to `LFS_ROOT` and `2000` corresponds to `EXTERNAL_PORT` in `env.list`.  
+   In the following command,  `2000` corresponds to `EXTERNAL_PORT` in `env.list`.  
+   You can use any directory instead of `/path/to/data` as your data directory.  
+   Other parameters, such as `3000` and `/opt/home/data`, must not be changed because they are used in `Dockerfile`.
    ```bash
    docker run --rm -it --env-file env.list -v /path/to/data:/opt/home/data -p2000:3000 gitlfs_with_nginx
    ```
