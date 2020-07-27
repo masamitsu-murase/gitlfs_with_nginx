@@ -21,7 +21,7 @@ jobs:
       run: docker build . --file Dockerfile --tag gitlfs_with_nginx
 
     - name: Run the Docker image
-      run: docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:3000 gitlfs_with_nginx
+      run: docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
 
     - name: Configure git
       run: |

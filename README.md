@@ -26,9 +26,9 @@ On your server:
 3. Run Docker.  
    In the following command,  `2000` corresponds to `EXTERNAL_PORT` in `env.list`.  
    You can use any directory instead of `/path/to/data` as your data directory.  
-   Other parameters, such as `3000` and `/opt/home/data`, must not be changed because they are used in `Dockerfile`.
+   Other parameters, such as `80` and `/opt/home/data`, must not be changed because they are used in `Dockerfile`.
    ```bash
-   docker run --rm -it --env-file env.list -v /path/to/data:/opt/home/data -p2000:3000 gitlfs_with_nginx
+   docker run --rm -it --env-file env.list -v /path/to/data:/opt/home/data -p2000:80 gitlfs_with_nginx
    ```
 
 On your client:
