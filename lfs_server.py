@@ -121,9 +121,9 @@ def download(repo, req):
     for obj in req["objects"]:
         oid = obj["oid"]
         path = oid_path(repo, oid)
-        if path.is_file():
+        size = obj["size"]
+        if path.is_file() and path.stat().st_size == size:
             url = oid_download_url(base_url, repo, oid)
-            size = path.stat().st_size
             objects.append({
                 "oid": oid,
                 "size": size,
