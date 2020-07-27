@@ -16,6 +16,7 @@ LFS_ROOT_REPOS = Path(os.environ["LFS_ROOT"]) / "repos"
 SECRET_KEY = os.environ["SECRET_KEY"].encode("utf-8")
 if len(SECRET_KEY) > 64:
     raise RuntimeError("SECRET_KEY must be less than or equal to 64 bytes.")
+EXPIRES_IN = int(os.environ["EXPIRES_IN"])
 
 
 def base_dir(repo, relative=False):
@@ -45,7 +46,7 @@ def hash_value(data):
     return h.hexdigest()
 
 
-def create_access_key(repo, req, expires_in=60 * 60):
+def create_access_key(repo, req, expires_in=EXPIRES_IN):
     expires_at = int(time.time()) + expires_in
     obj = {"expires_at": expires_at, "repo": repo}
     obj_str = json.dumps(obj)
