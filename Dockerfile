@@ -6,7 +6,7 @@ LABEL maintainer="masamitsu.murase@gmail.com" \
 
 WORKDIR /home/developer
 
-EXPOSE 3000
+# Port 80 is exposed by nginx docker image.
 
 ENV FLASK_PORT=5000
 ENV LFS_ROOT=/opt/home/data

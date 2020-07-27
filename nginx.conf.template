@@ -33,7 +33,7 @@ http {
     #gzip  on;
 
     server {
-        listen       3000;
+        listen       80;
         server_name  gitlfs;
 
         #charset koi8-r;
