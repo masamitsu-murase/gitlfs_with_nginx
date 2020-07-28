@@ -7,7 +7,7 @@ else
     export NGINX_PORT_AND_SSL_SETTING="$NGINX_PORT"
 fi
 
-envsubst '$LFS_ROOT $EXTERNAL_PORT $FLASK_PORT $NGINX_PORT_AND_SSL_SETTING' < nginx.conf.template > /etc/nginx/nginx.conf
+envsubst '$LFS_ROOT $EXTERNAL_PORT $FLASK_PORT $MAX_FILE_SIZE $NGINX_PORT_AND_SSL_SETTING' < nginx.conf.template > /etc/nginx/nginx.conf
 nginx -t
 nginx
 
