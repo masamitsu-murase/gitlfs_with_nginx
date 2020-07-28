@@ -8,6 +8,7 @@ WORKDIR /home/developer
 
 # Port 80 is exposed by nginx docker image.
 
+ENV NGINX_PORT=80
 ENV FLASK_PORT=5000
 ENV LFS_ROOT=/opt/home/data
 
