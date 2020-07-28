@@ -54,7 +54,7 @@ http {
 
             client_body_temp_path      ${LFS_ROOT}/upload_store;
             client_body_in_file_only   on;
-            client_max_body_size       4000M;
+            client_max_body_size       ${MAX_FILE_SIZE};
 
             proxy_set_header           X-File-Name $request_body_file;
             proxy_pass_request_body    off;
