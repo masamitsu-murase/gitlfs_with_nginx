@@ -39,7 +39,7 @@ jobs:
         USE_HTTPS: ${{ matrix.use_https }}
       run: |
         if [ $USE_HTTPS = "yes" ]; then
-          docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/ssl:ro -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
+          docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/tests/cert:/opt/home/ssl:ro -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
         else
           docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
         fi
