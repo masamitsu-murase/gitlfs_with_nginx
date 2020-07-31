@@ -33,11 +33,20 @@ def del_rw(action, name, exc):
 
 class GitLfsServerTest(unittest.TestCase):
     def setUp(self):
+        if os.environ.get("USE_HTTPS", "no") == "yes":
+            os.environ["GIT_SSL_NO_VERIFY"] = "true"
+            self._use_https = True
+        else:
+            self._use_https = False
         if GIT_BASE_DIR.exists():
             shutil.rmtree(GIT_BASE_DIR, onerror=del_rw)
 
     def lfs_url(self, repo):
-        return f"http://localhost:2000/lfs/{repo}/info/lfs"
+        if self._use_https:
+            scheme = "https"
+        else:
+            scheme = "http"
+        return f"{scheme}://localhost:2000/lfs/{repo}/info/lfs"
 
     def git_repo_dir(self, name):
         return GIT_REPOS_DIR / name
