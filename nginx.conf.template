@@ -1,6 +1,6 @@
 
 #user  nobody;
-worker_processes  1;
+worker_processes  auto;
 
 #error_log  logs/error.log;
 #error_log  logs/error.log  notice;
@@ -33,8 +33,9 @@ http {
     #gzip  on;
 
     server {
-        listen       80;
         server_name  gitlfs;
+
+        include      ${HTTP_OR_HTTPS_CONF};
 
         #charset koi8-r;
 
@@ -82,6 +83,9 @@ http {
         location /lfs/ {
             # proxy_set_header Host $host;
             proxy_set_header Host $host:${EXTERNAL_PORT};
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
             proxy_pass       http://localhost:${FLASK_PORT};
         }
     }

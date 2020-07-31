@@ -2,12 +2,16 @@ name: Python Unittest
 
 on:
   push:
-    branches: [ master, support_test_on_github_actions ]
+    branches: [ master, support_test_on_github_actions, support_https ]
   pull_request:
     branches: [ master ]
 
 jobs:
   build:
+    strategy:
+      matrix:
+        use_https: ["yes", "no"]
+
     runs-on: ubuntu-latest
 
     steps:
@@ -20,8 +24,25 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag gitlfs_with_nginx
 
+    - name: Prepare env.list
+      env:
+        USE_HTTPS: ${{ matrix.use_https }}
+      run: |
+        if [ $USE_HTTPS = "yes" ]; then
+          sh tests/create_cert.sh
+          sed -i "s/^USE_HTTPS=no/USE_HTTPS=yes/" env.list
+        fi
+        cat env.list
+
     - name: Run the Docker image
-      run: docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
+      env:
+        USE_HTTPS: ${{ matrix.use_https }}
+      run: |
+        if [ $USE_HTTPS = "yes" ]; then
+          docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/tests/cert:/opt/home/ssl:ro -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
+        else
+          docker run --name gitlfs_container -d --rm --env-file env.list -v $GITHUB_WORKSPACE/data:/opt/home/data -p2000:80 gitlfs_with_nginx
+        fi
 
     - name: Configure git
       run: |
@@ -31,6 +52,8 @@ jobs:
 
     - name: Run unittest
       run: python -m unittest -v
+      env:
+        USE_HTTPS: ${{ matrix.use_https }}
 
     - name: Stop the Docker image
       run: docker stop gitlfs_container
