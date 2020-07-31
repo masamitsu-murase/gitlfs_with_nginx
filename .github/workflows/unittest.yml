@@ -2,7 +2,7 @@ name: Python Unittest
 
 on:
   push:
-    branches: [ master, support_test_on_github_actions ]
+    branches: [ master, support_test_on_github_actions, support_https ]
   pull_request:
     branches: [ master ]
 
