@@ -2,7 +2,7 @@
 FROM nginx:1.19
 
 LABEL maintainer="masamitsu.murase@gmail.com" \
-      version="1.5"
+      version="1.6"
 
 WORKDIR /home/developer
 
