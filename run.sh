@@ -1,6 +1,12 @@
 
 set -e
 
+# Check whether SECRET_KEY is different from the default value.
+if [ $SECRET_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" ]; then
+    echo Set SECRET_KEY appropriately. 1>&2
+    exit 1
+fi
+
 if [ $USE_HTTPS = "yes" ]; then
     export HTTP_OR_HTTPS_CONF="nginx_https.conf"
     mkdir -p /etc/nginx/certs
