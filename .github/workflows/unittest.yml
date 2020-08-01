@@ -32,6 +32,7 @@ jobs:
           sh tests/create_cert.sh
           sed -i "s/^USE_HTTPS=no/USE_HTTPS=yes/" env.list
         fi
+        sed -i "s/^SECRET_KEY=0/SECRET_KEY=1/" env.list
         cat env.list
 
     - name: Run the Docker image
