@@ -23,13 +23,24 @@ On your server:
    #  Note that the key must be less than or equal to 64 bytes.
    SECRET_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
    ```
-3. Run Docker.  
+3. [Optional] Prepare for HTTPS.  
+   Set `USE_HTTPS` to `yes` in `env.list`.  
+   Put server certificate and key in a directory.  
+   Configure `SSL_CERTIFICATE` and `SSL_CERTIFICATE_KEY` in `env.list` to specify these file names.  
+   `SSL_CERTIFICATE` and `SSL_CERTIFICATE_KEY` should not contain full path, but file name.
+4. Run Docker.  
    In the following command,  `2000` corresponds to `EXTERNAL_PORT` in `env.list`.  
    You can use any directory instead of `/path/to/data` as your data directory.  
    Other parameters, such as `80` and `/opt/home/data`, must not be changed because they are used in `Dockerfile`.
    ```bash
    docker run --rm -it --env-file env.list -v /path/to/data:/opt/home/data -p2000:80 gitlfs_with_nginx
    ```
+   If you enable HTTPS, use the following command.
+   ```bash
+   docker run --rm -it --env-file env.list -v /path/to/data:/opt/home/data -v /path/to/cert:/opt/home/ssl:ro -p2000:80 gitlfs_with_nginx
+   ```
+   In the above command, `/path/to/cert` is the directory where you put server certificate and key in step 3.  
+   `/opt/home/ssl` must not be changed.
 
 On your client:
 
