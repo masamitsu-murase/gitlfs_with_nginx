@@ -14,6 +14,7 @@ BASE_DIR = Path(__file__).absolute().parent
 GIT_BASE_DIR = BASE_DIR / "git"
 GIT_REPOS_DIR = GIT_BASE_DIR / "repos"
 GIT_WORKING_DIR = GIT_BASE_DIR / "working"
+SERVER_CERT_PATH = BASE_DIR / "cert" / "server.pem"
 
 
 @contextlib.contextmanager
@@ -34,7 +35,7 @@ def del_rw(action, name, exc):
 class GitLfsServerTest(unittest.TestCase):
     def setUp(self):
         if os.environ.get("USE_HTTPS", "no") == "yes":
-            os.environ["GIT_SSL_NO_VERIFY"] = "true"
+            os.environ["GIT_SSL_CAINFO"] = str(SERVER_CERT_PATH)
             self._use_https = True
         else:
             self._use_https = False
